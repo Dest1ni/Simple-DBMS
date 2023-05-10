@@ -23,20 +23,31 @@ def add():
     if request.method=="POST":
         name = request.form['name']
         age = request.form['age']
-        c.execute(f"INSERT INTO users (name, age) VALUES ('{name}', {age})")
-        conn.commit()
-        return render_template("index.html")
+        if not name and not age:
+            return render_template("index.html")
+        else:
+            c.execute(f"INSERT INTO users (name, age) VALUES ('{name}', {age})")
+            conn.commit()
+            return render_template("index.html")
     else:
         return render_template('add_user.html')
+    
 
 # Получение информации и конкретном пользователе
-@app.route('/get_users/<name>', methods=['GET'])
-def get_users(name):
+@app.route('/get_user', methods=['POST','GET'])
+def get_user():
     conn = sqlite3.connect('example.db')
     c = conn.cursor()
-    c.execute(f"SELECT * FROM users WHERE name = '{name}'")
-    users = [{'id': row[0], 'name': row[1], 'age': row[2]} for row in c.fetchall()]
-    return jsonify({'users': users})
+    if request.method=="POST":
+        name=request.form["name"]
+        if not name:
+            return render_template("index.html")
+        c.execute(f" SELECT * FROM users WHERE name = ?",(name,))
+        users = [{'id': row[0], 'name': row[1], 'age': row[2]} for row in c.fetchall()]
+        conn.commit()
+        return render_template('all_users_sheet.html',users=users)
+    else:
+       return render_template('get_user.html')
 
 # Получение информации о всех пользователях
 @app.route('/get_all', methods=['GET'])
