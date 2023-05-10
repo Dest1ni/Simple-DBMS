@@ -11,8 +11,19 @@ conn.commit()
 app = Flask(__name__)
 
 # Титульная страница 
-@app.route('/')
+@app.route('/',methods=['POST',"GET"])
 def title():
+    if request.method=="POST":
+        conn = sqlite3.connect('example.db')
+        c = conn.cursor()
+        name=request.form["name"]
+        c.execute(f" SELECT * FROM users WHERE name = ?",(name,))
+        users = [{'id': row[0], 'name': row[1], 'age': row[2]} for row in c.fetchall()]
+        conn.commit()
+        if not users:
+            return render_template("error.html")
+        else:
+            return render_template('all_users_sheet.html',users=users)
     return render_template("index.html")
 
 # Добавление пользователя
@@ -34,20 +45,18 @@ def add():
     
 
 # Получение информации и конкретном пользователе
-@app.route('/get_user', methods=['POST','GET'])
+@app.route('/get_user', methods=['POST'])
 def get_user():
     conn = sqlite3.connect('example.db')
     c = conn.cursor()
-    if request.method=="POST":
-        name=request.form["name"]
-        if not name:
-            return render_template("index.html")
-        c.execute(f" SELECT * FROM users WHERE name = ?",(name,))
-        users = [{'id': row[0], 'name': row[1], 'age': row[2]} for row in c.fetchall()]
-        conn.commit()
-        return render_template('all_users_sheet.html',users=users)
+    name=request.form["name"]
+    c.execute(f" SELECT * FROM users WHERE name = ?",(name,))
+    conn.commit()
+    users = [{'id': row[0], 'name': row[1], 'age': row[2]} for row in c.fetchall()]
+    if len(users)>0 :
+        return f'{len(users)}'
     else:
-       return render_template('get_user.html')
+        return render_template("error.html")
 
 # Получение информации о всех пользователях
 @app.route('/get_all', methods=['GET'])
@@ -65,9 +74,10 @@ def get_all():
 def clear_table():
     conn = sqlite3.connect('example.db')
     c = conn.cursor()
-    c.execute(f"DELETE FROM users")
+    c.execute(f"DROP TABLE IF EXISTS users")
     conn.commit()
-
+    c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, age INTEGER)''')
+    conn.commit()
     return render_template("clear_sheet.html")
 
 if __name__ == '__main__':
